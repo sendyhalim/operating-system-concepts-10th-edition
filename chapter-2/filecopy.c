@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <sys/_types/_off_t.h>
+// #include <sys/_types/_off_t.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
 #include <unistd.h>
@@ -32,7 +32,7 @@ int main() {
 
   struct stat file_stat;
   fstat(source_file_descriptor, &file_stat);
-  printf("file size %lli\n", file_stat.st_size);
+  printf("file size %li\n", file_stat.st_size);
 
 
   char *file_contents = malloc(file_stat.st_size + 1); // Add 1 more for '\0'
