@@ -55,7 +55,7 @@ int main(int argc, char *argv []) {
 
     printf("Elapsed time %f ms\n", ((float) end_timestamp.tv_usec - start_micro_seconds) / 1e3);
 
-    /* shm_unlink(SHM_NAME); */
+    shm_unlink(SHM_NAME);
   }
 
   return 0;
