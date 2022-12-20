@@ -7,7 +7,7 @@ int main() {
   pid_t pid = fork();
 
   // Child process will always get pid of 0 from fork
-  // because it's kind of a marker.
+  // because it's a marker.
   printf("There should be 2 outputs of this log. PID: %d\n", pid);
 
   if (pid < 0) {
