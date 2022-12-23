@@ -41,6 +41,8 @@ int main(int argc, char *argv []) {
 
     char **cmd_params = malloc((argc) * sizeof(argv[0]));
 
+    // Either I'm a noob or there's no better way except to copy through loop,
+    // damn you C...
     for (int i = 1; i < argc; i++) {
       cmd_params[i - 1] = malloc(strlen(argv[i]));
       strcpy(cmd_params[i - 1], argv[i]);
