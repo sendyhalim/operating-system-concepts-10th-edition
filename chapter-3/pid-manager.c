@@ -44,12 +44,14 @@ int allocate_pid() {
     i++;
   }
 
-  uint64_t available_bit_field = ~ (*current_bit_field);
+  uint64_t __current_bit_field = *current_bit_field;
   uint64_t bit_value_to_set = 1;
 
-  while ((available_bit_field & 1) == 0) {
+  // Iterate while the current bit field right most bit is 1 (unavailable)
+  // then shift right it 1 by 1;
+  while ((__current_bit_field & 1) == 1) {
     bit_value_to_set = bit_value_to_set << 1;
-    available_bit_field = available_bit_field >> 1;
+    __current_bit_field = __current_bit_field >> 1;
   }
 
   *current_bit_field = *current_bit_field | bit_value_to_set;
