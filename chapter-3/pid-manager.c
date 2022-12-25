@@ -5,18 +5,29 @@
 
 
 #define MIN_PID 300
-#define MAX_PID 5000
+#define MAX_PID 500
 
-int bit_field_count = (MAX_PID / 63) + 1;
-uint64_t *pid_bit_fields;
+typedef unsigned int bit_t;
+int bit_width = 32;
+int bit_field_count = ((MAX_PID - MIN_PID) / 32) + 1;
+
+struct pid_state_t {
+  bit_t *pid_bit_fields;
+  int pid_counter;
+  int pid_width;
+};
+
+struct pid_state_t pid_state;
 
 int allocate_map() {
-  pid_bit_fields = calloc(bit_field_count, sizeof(uint64_t));
+  pid_state.pid_bit_fields = calloc(bit_field_count, sizeof(bit_t));
+  pid_state.pid_counter = 0;
+  pid_state.pid_width = MAX_PID - MIN_PID + 1; // To include the MIN_PID as well
 
   return 1;
 }
 
-int count_set_bit(uint64_t n) {
+int count_set_bit(bit_t n) {
   int counter = 0;
 
   while (n > 0) {
@@ -28,52 +39,80 @@ int count_set_bit(uint64_t n) {
 }
 
 int allocate_pid() {
-  // Iterate and check which bit_fields are available
+  // Guard, it's full!
+  if (pid_state.pid_counter == pid_state.pid_width) {
+    return -1;
+  }
+
   int i = 0;
-  uint64_t *current_bit_field;
+  bit_t *current_bit_field;
 
+  // Iterate and check which bit_field has empty slot
   while (i < bit_field_count) {
-     current_bit_field = &pid_bit_fields[i];
+     current_bit_field = &pid_state.pid_bit_fields[i];
 
-    // Adding 1 to a full set bits will circular back to 0.
-    // (~(uint64_t) 0) + 1 == 0 <--- all bits are set.
-    if (pid_bit_fields[i] + 1 != 0)  {
+    // Stop when bit field still has empty slot
+    if (~(*current_bit_field) != 0) {
       break;
     }
 
     i++;
   }
 
-  uint64_t __current_bit_field = *current_bit_field;
-  uint64_t bit_value_to_set = 1;
+  int bit_position_to_set = 0;
 
-  // Iterate while the current bit field right most bit is 1 (unavailable)
-  // then shift right it 1 by 1;
-  while ((__current_bit_field & 1) == 1) {
-    bit_value_to_set = bit_value_to_set << 1;
-    __current_bit_field = __current_bit_field >> 1;
+  // Iterate until we find unset bit;
+  while ((*current_bit_field & (1 << bit_position_to_set)) != 0) {
+    bit_position_to_set++;
   }
 
-  *current_bit_field = *current_bit_field | bit_value_to_set;
+  *current_bit_field = *current_bit_field | (1 << bit_position_to_set);
+  bit_t pid = (MIN_PID + (i * bit_width) + bit_position_to_set) % MAX_PID;
+  pid_state.pid_counter++;
 
-  return (i * 64) + count_set_bit(*current_bit_field);
+  if (pid == 0) {
+    return MAX_PID;
+  } else if (pid < MIN_PID) {
+    return pid + MIN_PID;
+  } else {
+    return pid;
+  }
 }
 
 void release_pid(int pid) {
+  // Guard
+  if (! (pid >= MIN_PID && pid <= MAX_PID)) {
+    return;
+  }
+
+  bit_t normalized_pid = pid - MIN_PID;
+  int bit_field_position = (normalized_pid / bit_width); // No need to +1 because index is 0 based.
+  int pid_position = normalized_pid % bit_width;
+
+  bit_t *current_bit_field = &pid_state.pid_bit_fields[bit_field_position];
+
+  // Turn off the bit at the given position
+  *current_bit_field = *current_bit_field ^ (1 << pid_position);
+  pid_state.pid_counter--;
 }
 
 int main() {
   allocate_map();
-  printf("Hey %d\n",  allocate_pid());
-  printf("Hey %d\n",  allocate_pid());
-  printf("Hey %d\n",  allocate_pid());
-  printf("Hey %d\n",  allocate_pid());
-  printf("Hey %d\n",  allocate_pid());
-  printf("Hey %d\n",  allocate_pid());
-  printf("Hey %d\n",  allocate_pid());
-  printf("Hey %d\n",  allocate_pid());
-  printf("Hey %d\n",  allocate_pid());
-  printf("Hey %d\n",  allocate_pid());
+
+  int pid = 0;
+
+  while (pid < MAX_PID && pid != -1) {
+    pid = allocate_pid();
+    printf("Hey %d\n",  pid);
+  }
+
+  release_pid(388);
+  release_pid(332);
+  release_pid(300);
+  printf("LAST %d\n",  allocate_pid());
+  printf("LAST %d\n",  allocate_pid());
+  printf("LAST %d\n",  allocate_pid());
+
   return 0;
 }
 
